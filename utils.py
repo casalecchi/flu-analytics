@@ -1,7 +1,9 @@
 import matplotlib.pyplot as plt
 import pandas as pd
 import requests
+from io import BytesIO
 from matplotlib.offsetbox import OffsetImage,AnnotationBbox
+from PIL import Image
 
 from Team import *
 
@@ -11,6 +13,13 @@ HEADERS = {
 }
 
 TEAMS = [Botafogo, Flamengo, Fluminense, Vasco]
+
+def fetch_img(url):
+    response = requests.get(url, headers=HEADERS)
+    if response.status_code == 200:
+        return Image.open(BytesIO(response.content))
+    else:
+        return plt.imread('img/player.webp')
 
 def get_data_from_matches():
     data = pd.DataFrame()
@@ -37,11 +46,12 @@ def get_match_id(match_url):
     return match_url[id_index:] 
 
 def get_df_from_team(data, field, team: Team):
-    df = pd.DataFrame(columns=('name', 'position', 'aerial_won', 'ground_won', 'clearences', 'interceptions', 'primary_color', 'secondary_color', 'badge'))
+    df = pd.DataFrame(columns=('name', 'position', 'aerial_won', 'ground_won', 'clearences', 'interceptions', 'primary_color', 'secondary_color', 'badge', 'avatar_url'))
     team_players = data[field]
     players = team_players["players"]
     for index, player in enumerate(players):
         name = player["player"]["name"]
+        avatar_url = f"https://api.sofascore.com/api/v1/player/{player["player"]["id"]}/image"
         position = player["position"]
         statistics = player.get("statistics", {})
         aerial_won = statistics.get("aerialWon", 0)
@@ -51,7 +61,7 @@ def get_df_from_team(data, field, team: Team):
         primary_color = team.primary_color
         secondary_color = team.secondary_color
         badge = team.badge
-        df.loc[index] = [name, position, aerial_won, ground_won, total_clearence, interceptions, primary_color, secondary_color, badge]
+        df.loc[index] = [name, position, aerial_won, ground_won, total_clearence, interceptions, primary_color, secondary_color, badge, avatar_url]
     
     return df
 
@@ -77,13 +87,19 @@ def generate_bar_from_data(data, column, title, k=10):
                 ha='center',
                 fontsize=22,
                 )
-        img = plt.imread(data.iloc[i]['badge'])
-        im = OffsetImage(img, zoom=0.9)
-        im.image.axes = ax
-        ab = AnnotationBbox(im, (i, 0),  xybox=(i, valor - 4), frameon=False,
+        badge = plt.imread(data.iloc[i]['badge'])
+        offset_badge = OffsetImage(badge, zoom=0.9)
+        offset_badge.image.axes = ax
+        ab = AnnotationBbox(offset_badge, (i, 0),  xybox=(i, valor - 4), frameon=False,
                             xycoords='data', pad=0)
         ax.add_artist(ab)
-        
+
+        avatar = fetch_img(data.iloc[i]['avatar_url'])
+        offset_avatar = OffsetImage(avatar, zoom=0.4)
+        offset_avatar.image.axes = ax
+        ab = AnnotationBbox(offset_avatar, (i, 0),  xybox=(i, -3), frameon=False,
+                            xycoords='data', pad=0)
+        ax.add_artist(ab)
         
     plt.title(title, fontsize=24)
     plt.savefig(f'{title}.png')
