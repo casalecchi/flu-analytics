@@ -1,9 +1,9 @@
 import matplotlib.pyplot as plt
 import pandas as pd
 import requests
-from io import BytesIO
+import shutil
 from matplotlib.offsetbox import OffsetImage,AnnotationBbox
-from PIL import Image
+from PIL import Image, ImageDraw
 
 from Team import *
 
@@ -14,12 +14,28 @@ HEADERS = {
 
 TEAMS = [Botafogo, Flamengo, Fluminense, Vasco]
 
+def crop_img(path):
+    img = Image.open(path).convert("RGBA")
+    background = Image.new("RGBA", img.size, (0,0,0,0))
+
+    mask = Image.new("RGBA", img.size, 0)
+    draw = ImageDraw.Draw(mask)
+    draw.ellipse((0,0,150,150), fill='green', outline=None)
+
+    new_img = Image.composite(img, background, mask)
+    new_img.save('image.png')
+
 def fetch_img(url):
-    response = requests.get(url, headers=HEADERS)
+    response = requests.get(url, stream=True, headers=HEADERS)
     if response.status_code == 200:
-        return Image.open(BytesIO(response.content))
+        f = open('image.jpg', 'wb')
+        shutil.copyfileobj(response.raw, f)
+        f.close()
+        crop_img('image.jpg')
+        return 'image.png'
     else:
-        return plt.imread('img/player.webp')
+        crop_img('img/player.png')
+        return 'img/player.png'
 
 def get_data_from_matches():
     data = pd.DataFrame()
@@ -74,7 +90,7 @@ def generate_bar_from_data(data, column, title, k=10):
         data["name"].head(10), data[column].head(k),
         color=data["primary_color"].head(k),
         edgecolor=data["secondary_color"].head(k),
-        width=0.7,
+        width=0.5,
         linewidth=5,
     )
 
@@ -94,12 +110,22 @@ def generate_bar_from_data(data, column, title, k=10):
                             xycoords='data', pad=0)
         ax.add_artist(ab)
 
-        avatar = fetch_img(data.iloc[i]['avatar_url'])
+        img_path = fetch_img(data.iloc[i]['avatar_url'])
+        avatar = plt.imread(img_path)
         offset_avatar = OffsetImage(avatar, zoom=0.4)
         offset_avatar.image.axes = ax
-        ab = AnnotationBbox(offset_avatar, (i, 0),  xybox=(i, -3), frameon=False,
-                            xycoords='data', pad=0)
+        ab = AnnotationBbox(offset_avatar, (i, 0),  xybox=(i, -3.5), frameon=True,
+                        xycoords='data', pad=0, bboxprops={'boxstyle': 'circle', 
+                                                           'ec': data.iloc[i]["primary_color"],
+                                                           'linewidth': 3})
         ax.add_artist(ab)
         
+    def format_names(x, _):
+        name = data.iloc[x]['name'].split(' ')
+        return " ".join(name[0:2])
+    
+    plt.xticks(fontsize=19)
+    ax.xaxis.set_major_formatter(plt.FuncFormatter(format_names))
+    ax.set_yticks([])
     plt.title(title, fontsize=24)
-    plt.savefig(f'{title}.png')
+    plt.savefig(f'{title}.png', bbox_inches = 'tight')

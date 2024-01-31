@@ -7,4 +7,4 @@ aerial_filter = data.sort_values('aerial_won', ascending=False)
 clearence_filter = data.sort_values('clearences', ascending=False)
 interceptions_filter = data.sort_values('interceptions', ascending=False)
 
-generate_bar_from_data(ground_filter, 'ground_won', 'Ranking of ground duels won - 3th round - Carioca')
+generate_bar_from_data(ground_filter, 'ground_won', 'Ranking of ground duels won - 4th round - Carioca')
