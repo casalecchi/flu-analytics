@@ -13,8 +13,8 @@ def get_data_from_matches(round_number, teams_selected):
             team_data = get_data_from_event_lineups(id)
             team_df = get_df_from_team(team_data, field, team)
             data = pd.concat([data, team_df])
-        except:
-            print(f"Cannot find data for {team.name} match")
+        except Exception as ex:
+            print(f"Cannot find data for {team.name} match -> {ex}")
 
     return data
 
@@ -23,17 +23,17 @@ def get_data_from_event_lineups(match_id):
     return get_data(json_url)
 
 def get_df_from_team(data, field, team: Team):
-    df = pd.DataFrame(columns=('name', 'position', 'primary_color', 'secondary_color', 'badge', 'avatar_url', *Statistics.Attributes, 'groundWon'))
+    df = pd.DataFrame(columns=('name', 'position', 'primary_color', 'secondary_color', 'badge_url', 'avatar_url', *Statistics.Attributes, 'groundWon'))
     team_players = data[field]
     players = team_players["players"]
     for index, player in enumerate(players):
         name = player["player"]["name"]
         avatar_url = f"https://api.sofascore.com/api/v1/player/{player["player"]["id"]}/image"
-        position = player["position"]
+        position = player.get("position", "")
         primary_color = team.primary_color
         secondary_color = team.secondary_color
-        badge = team.badge
-        df.loc[index]= [name, position, primary_color, secondary_color, badge, avatar_url, *[0.0 for _ in range(Statistics.Num_attributes + 1)]]
+        badge_url = team.badge
+        df.loc[index]= [name, position, primary_color, secondary_color, badge_url, avatar_url, *[0.0 for _ in range(Statistics.Num_attributes + 1)]]
         statistics = player.get("statistics", {})
         for attr in Statistics.Attributes:
             df.at[index, attr] = statistics.get(attr, 0)
@@ -83,19 +83,22 @@ def get_team_props(name, id, field) -> object:
 def get_fetch_info(round_data: object, teams):
     info = []
     for match in round_data:
+        teams_find = 0
         for team in teams:
+            if teams_find == 2: break
+            team = team.upper()
             field = ""
-            home = match["homeTeam"]["name"]
-            away = match["awayTeam"]["name"]
-            if home == team:
+            home = match["homeTeam"]["id"]
+            away = match["awayTeam"]["id"]
+            if home == TEAMS_OBJ[team].id:
                 field = "home"
                 team_obj = get_team_props(team, match["id"], field)
                 info.append(team_obj)
-                break
-            elif away == team:
+                teams_find += 1
+            elif away == TEAMS_OBJ[team].id:
                 field = "away"
                 team_obj = get_team_props(team, match["id"], field)
                 info.append(team_obj)
-                break
+                teams_find += 1
 
     return info
