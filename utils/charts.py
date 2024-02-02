@@ -12,35 +12,29 @@ def crop_img(path):
     new_img = Image.composite(img, background, mask)
     new_img.save('image.png')
 
-def fetch_img(url):
+def fetch_img(url, crop=True):
     response = requests.get(url, stream=True, headers=HEADERS)
     if response.status_code == 200:
         f = open('image.jpg', 'wb')
         shutil.copyfileobj(response.raw, f)
         f.close()
-        crop_img('image.jpg')
-        return 'image.png'
+        if crop: 
+            crop_img('image.jpg')
+            return 'image.png'
+        else:
+            return 'image.jpg'
     else:
         path = os.getcwd() + "/img/player.png"
         return path
 
-def get_text_y(value, min_value, max_value):
-    diff = max_value - min_value
-    if diff < 15:
-        return value - 0.18 * diff
-    else:
-        return value - 0.23 * diff
+def get_text_y(value, max_value):
+    return value - 0.13 * max_value
     
-def get_badge_y(value, min_value, max_value):
-    diff = max_value - min_value
-    if diff < 2:
-        return value - 0.5 * diff
-    elif diff < 8:
-        return value - 0.35 * diff
-    elif diff < 20:
-        return value - 0.38 * diff
+def get_badge_y(value, max_value):
+    if max_value < 2:
+        return value - 0.5 * max_value
     else:
-        return value - 0.48 * diff
+        return value - 0.27 * max_value
     
 def get_avatar_y(max_value):
     return -max_value * 0.2
@@ -51,7 +45,6 @@ def generate_bar_from_data(data, column, title, isInt=True, k=10):
     ax.set_facecolor("#EEE9E4")
     filtered_data = data.sort_values(column, ascending=False).head(k)
     max_value = filtered_data.iloc[0][column]
-    min_value = filtered_data.iloc[-1][column]
 
     plt.bar(
         filtered_data["name"], filtered_data[column],
@@ -66,17 +59,19 @@ def generate_bar_from_data(data, column, title, isInt=True, k=10):
         if isInt:
             value = int(value)
         plt.text(x=i,
-                y=get_text_y(value, min_value, max_value),
+                y=get_text_y(value, max_value),
                 s = str(value),
                 backgroundcolor='#EEE9E4',
                 ha='center',
                 # weight='bold',
                 fontsize=16,
                 )
-        badge = plt.imread(filtered_data.iloc[i]['badge'])
-        offset_badge = OffsetImage(badge, zoom=0.8)
+        
+        badge_path = fetch_img(filtered_data.iloc[i]['badge_url'], crop=False)
+        badge = plt.imread(badge_path)
+        offset_badge = OffsetImage(badge, zoom=0.28)
         offset_badge.image.axes = ax
-        ab = AnnotationBbox(offset_badge, (i, 0),  xybox=(i, get_badge_y(value, min_value, max_value)), frameon=False,
+        ab = AnnotationBbox(offset_badge, (i, 0),  xybox=(i, get_badge_y(value, max_value)), frameon=False,
                             xycoords='data', pad=0)
         ax.add_artist(ab)
 
