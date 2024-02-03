@@ -31,10 +31,7 @@ def get_text_y(value, max_value):
     return value - 0.13 * max_value
     
 def get_badge_y(value, max_value):
-    if max_value < 2:
-        return value - 0.5 * max_value
-    else:
-        return value - 0.27 * max_value
+    return value - 0.27 * max_value
     
 def get_avatar_y(max_value):
     return -max_value * 0.2
@@ -59,21 +56,25 @@ def generate_bar_from_data(data, column, title, isInt=True, k=10):
         if isInt:
             value = int(value)
         plt.text(x=i,
-                y=get_text_y(value, max_value),
-                s = str(value),
-                backgroundcolor='#EEE9E4',
-                ha='center',
-                # weight='bold',
-                fontsize=16,
+                 # if the value is too low, the label will be lower.
+                 # with max we fixed the mininum value for y
+                 y=max(get_text_y(value, max_value), 0.07 * max_value),
+                 s = str(value),
+                 backgroundcolor='#EEE9E4',
+                 ha='center',
+                 # weight='bold',
+                 fontsize=16,
                 )
         
-        badge_path = fetch_img(filtered_data.iloc[i]['badge_url'], crop=False)
-        badge = plt.imread(badge_path)
-        offset_badge = OffsetImage(badge, zoom=0.28)
-        offset_badge.image.axes = ax
-        ab = AnnotationBbox(offset_badge, (i, 0),  xybox=(i, get_badge_y(value, max_value)), frameon=False,
-                            xycoords='data', pad=0)
-        ax.add_artist(ab)
+        if value >= 0.35 * max_value:
+            # if less will be no room for the badge
+            badge_path = fetch_img(filtered_data.iloc[i]['badge_url'], crop=False)
+            badge = plt.imread(badge_path)
+            offset_badge = OffsetImage(badge, zoom=0.28)
+            offset_badge.image.axes = ax
+            ab = AnnotationBbox(offset_badge, (i, 0),  xybox=(i, get_badge_y(value, max_value)), frameon=False,
+                                xycoords='data', pad=0)
+            ax.add_artist(ab)
 
         img_path = fetch_img(filtered_data.iloc[i]['avatar_url'])
         avatar = plt.imread(img_path)
@@ -111,6 +112,7 @@ def get_bar_chart_inputs():
         choices.append(attr)
     # custom attr
     choices.append("groundWon")
+    choices.sort()
 
     questions = [
         inquirer.Text('fname', message="Type the file name with data (with .csv)"),
