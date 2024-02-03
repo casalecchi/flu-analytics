@@ -40,7 +40,7 @@ def get_avatar_y(max_value):
     return -max_value * 0.2
     
 def generate_bar_from_data(data, column, title, isInt=True, k=10):
-    plt.figure(figsize=(24,6), facecolor="#EEE9E4") 
+    plt.figure(figsize=(k * 2.4, 6), facecolor="#EEE9E4") 
     ax = plt.axes()
     ax.set_facecolor("#EEE9E4")
     filtered_data = data.sort_values(column, ascending=False).head(k)
@@ -104,3 +104,21 @@ def generate_bar_from_data(data, column, title, isInt=True, k=10):
     plt.savefig(f'{title}.png', bbox_inches = 'tight')
     os.remove('image.jpg')
     os.remove('image.png')
+
+def get_bar_chart_inputs():
+    choices = []
+    for attr in Statistics.Attributes:
+        choices.append(attr)
+    # custom attr
+    choices.append("groundWon")
+
+    questions = [
+        inquirer.Text('fname', message="Type the file name with data (with .csv)"),
+        inquirer.List('attr', message="What attribute you want to create the ranking?",
+                        choices=choices,),
+        inquirer.Text('title', message="Inform the title of your chart"),
+        inquirer.Text('k', message="K-value"),
+    ]
+
+    answers = inquirer.prompt(questions)
+    return answers

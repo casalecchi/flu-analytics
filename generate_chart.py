@@ -1,7 +1,11 @@
 from utils.charts import *
 
-path = os.getcwd() + '/data/data.csv'
+inputs = get_bar_chart_inputs()
+fname = inputs["fname"]
+attr = inputs["attr"]
+k = int(inputs["k"])
+title = inputs["title"]
+
+path = os.getcwd() + "/data/" + fname
 data = pd.read_csv(path)
-generate_bar_from_data(data, "totalPass", "Ranking de passes certos na rodada 5 - Carioca")
-generate_bar_from_data(data, "duelWon", "Ranking de duelos ganhos na rodada 5 - Carioca")
-generate_bar_from_data(data, "interceptionWon", "Ranking de interceptações na rodada 5 - Carioca")
+generate_bar_from_data(data, attr, title, k=k)
