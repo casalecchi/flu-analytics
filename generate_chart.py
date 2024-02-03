@@ -5,7 +5,7 @@ fname = inputs["fname"]
 attr = inputs["attr"]
 k = int(inputs["k"])
 int_response = inputs["isInt"]
-isInt = False if int_response.lower().find('n') else True
+isInt = False if int_response.lower().find('n') != -1 else True
 title = inputs["title"]
 
 path = os.getcwd() + "/data/" + fname
