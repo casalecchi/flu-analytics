@@ -120,6 +120,7 @@ def get_bar_chart_inputs():
                         choices=choices,),
         inquirer.Text('title', message="Inform the title of your chart"),
         inquirer.Text('k', message="K-value"),
+        inquirer.Text('isInt', message="Attribute should be presented as integer? [y]|[n]")
     ]
 
     answers = inquirer.prompt(questions)
