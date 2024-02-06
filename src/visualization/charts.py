@@ -1,31 +1,5 @@
-from utils import *
-
-
-def crop_img(path):
-    img = Image.open(path).convert("RGBA")
-    background = Image.new("RGBA", img.size, (0,0,0,0))
-
-    mask = Image.new("RGBA", img.size, 0)
-    draw = ImageDraw.Draw(mask)
-    draw.ellipse((0,0,150,150), fill='green', outline=None)
-
-    new_img = Image.composite(img, background, mask)
-    new_img.save('image.png')
-
-def fetch_img(url, crop=True):
-    response = requests.get(url, stream=True, headers=HEADERS)
-    if response.status_code == 200:
-        f = open('image.jpg', 'wb')
-        shutil.copyfileobj(response.raw, f)
-        f.close()
-        if crop: 
-            crop_img('image.jpg')
-            return 'image.png'
-        else:
-            return 'image.jpg'
-    else:
-        path = os.getcwd() + "/img/player.png"
-        return path
+from visualization import *
+from visualization.imageProcessing import fetch_img_from_url
 
 def get_text_y(value, max_value):
     return value - 0.13 * max_value
@@ -68,7 +42,7 @@ def generate_bar_from_data(data, column, title, isInt=True, k=10):
         
         if value >= 0.35 * max_value:
             # if less will be no room for the badge
-            badge_path = fetch_img(filtered_data.iloc[i]['badge_url'], crop=False)
+            badge_path = fetch_img_from_url(filtered_data.iloc[i]['badge_url'], crop=False)
             badge = plt.imread(badge_path)
             offset_badge = OffsetImage(badge, zoom=0.28)
             offset_badge.image.axes = ax
@@ -76,7 +50,7 @@ def generate_bar_from_data(data, column, title, isInt=True, k=10):
                                 xycoords='data', pad=0)
             ax.add_artist(ab)
 
-        img_path = fetch_img(filtered_data.iloc[i]['avatar_url'])
+        img_path = fetch_img_from_url(filtered_data.iloc[i]['avatar_url'])
         avatar = plt.imread(img_path)
         offset_avatar = OffsetImage(avatar, zoom=0.4)
         offset_avatar.image.axes = ax
@@ -102,13 +76,14 @@ def generate_bar_from_data(data, column, title, isInt=True, k=10):
     ax.xaxis.set_major_formatter(plt.FuncFormatter(format_names))
     ax.set_yticks([])
     plt.title(title, fontsize=24)
-    plt.savefig(f'{title}.png', bbox_inches = 'tight')
-    os.remove('image.jpg')
-    os.remove('image.png')
+    path = ROOT_DIR + "/src/examples/"
+    plt.savefig(path + f'{title}.png', bbox_inches = 'tight')
+    os.remove(ROOT_DIR + '/src/images/tmp.jpg')
+    os.remove(ROOT_DIR + '/src/images/tmp.png')
 
 def get_bar_chart_inputs():
     choices = []
-    for attr in Statistics.Attributes:
+    for attr in SofaStats.Individual_Stats:
         choices.append(attr)
     # custom attr
     choices.append("groundWon")

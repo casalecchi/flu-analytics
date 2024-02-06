@@ -1,0 +1,14 @@
+README.md
+setup.cfg
+setup.py
+src/extraction/__init__.py
+src/extraction/carioca.py
+src/extraction/classes.py
+src/extraction/fetchData.py
+src/local_structure.egg-info/PKG-INFO
+src/local_structure.egg-info/SOURCES.txt
+src/local_structure.egg-info/dependency_links.txt
+src/local_structure.egg-info/top_level.txt
+src/visualization/__init__.py
+src/visualization/charts.py
+src/visualization/imageProcessing.py

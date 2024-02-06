@@ -1,11 +1,15 @@
-class Team:
-    def __init__(self, name, primary_color, secondary_color, id, third_color=""):
-        self.name = name
-        self.primary_color = primary_color
-        self.secondary_color = secondary_color
-        self.id = id
-        self.badge = f"https://api.sofascore.com/api/v1/team/{id}/image"
-        self.third_color = third_color
+import inquirer
+import pandas as pd
+from pathlib import Path
+import requests
+from extraction.classes import *
+
+HEADERS = {
+    'user-agent': 'Mozilla/5.0 (Windows NT 10.0; rv:91.0) Gecko/20100101 Firefox/91.0'
+}
+
+ROOT_DIR = str(Path(__file__).absolute().parent.parent.parent)
+
 
 Botafogo = Team("BOTAFOGO", "#ffffff", "#000000", 1958)
 Flamengo = Team("FLAMENGO", "#ff0000", "#000000", 5981)
@@ -20,6 +24,8 @@ Portuguesa_RJ = Team("PORTUGUESA-RJ", "#008F45", "#D91E25", 208067, third_color=
 Sampaio_Correa_RJ = Team("SAMPAIO CORREA-RJ", "#00479C", "#FFC415", 257632)
 Volta_Redonda = Team("VOLTA REDONDA", "#000000", "#FEEF03", 6982, third_color="#ffffff")
 
-TEAMS = [Botafogo, Flamengo, Fluminense, Vasco, Audax_RJ, Bangu, Boavista, Madureira, Nova_Iguacu, Portuguesa_RJ, Sampaio_Correa_RJ, Volta_Redonda]
+CARIOCA_TEAMS = [Botafogo, Flamengo, Fluminense, Vasco, Audax_RJ, Bangu, Boavista, Madureira, Nova_Iguacu, Portuguesa_RJ, Sampaio_Correa_RJ, Volta_Redonda]
+CARIOCA_TEAMS_OBJ = {team.name: team for team in CARIOCA_TEAMS}
 
-TEAMS_OBJ = {team.name: team for team in TEAMS}
+Carioca = Tournament("Carioca Série A – Taça Guanabara", 92, 56974)
+Brasileirao_2023 = Tournament("Brasileirão Série A", 325, 48982)
