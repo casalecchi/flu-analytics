@@ -1,8 +1,9 @@
-from extraction.carioca import *
+from extraction.tournament import *
 
-inputs = get_carioca_inputs()
+Carioca = Tournament("Carioca Série A – Taça Guanabara", 92, 56974)
+inputs = Carioca.get_tournament_inputs()
 fname = ROOT_DIR + f"/data/{inputs['fname']}"
 round = inputs["round"]
 teams = inputs["teams"]
-data = get_df_from_carioca_round(round, teams)
+data = Carioca.get_df_from_tournament_round(round, teams)
 data.to_csv(fname)
