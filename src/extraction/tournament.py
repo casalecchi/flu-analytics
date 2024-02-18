@@ -71,12 +71,13 @@ class Tournament:
         team_id = data['team']['id']
         team = self.find_team_by_id(team_id)
         df = pd.DataFrame(columns=('id', 'player_name', 'team_name', 'primary_color', 'secondary_color', 
-                                   'badge_url', *SofaStats.Player_Stats_For_Tournament))
+                                   'badge_url', 'avatar_url', *SofaStats.Player_Stats_For_Tournament))
         team_name = team.name
         primary_color = team.primary_color
         secondary_color = team.secondary_color
         badge_url = team.badge
-        df.loc[0] = [player_id, player_name, team_name, primary_color, secondary_color, badge_url, *[0.0 for _ in range(len(SofaStats.Player_Stats_For_Tournament))]]
+        avatar_url = f"https://api.sofascore.com/api/v1/player/{player_id}/image"
+        df.loc[0] = [player_id, player_name, team_name, primary_color, secondary_color, badge_url, avatar_url, *[0.0 for _ in range(len(SofaStats.Player_Stats_For_Tournament))]]
         for attr in SofaStats.Player_Stats_For_Tournament:
             df.at[0, attr] = statistics.get(attr, 0)
         

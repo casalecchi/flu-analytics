@@ -18,7 +18,7 @@ def generate_bar_from_data(data, column, title, isInt=True, k=10):
     max_value = filtered_data.iloc[0][column]
 
     plt.bar(
-        filtered_data["name"], filtered_data[column],
+        filtered_data["player_name"], filtered_data[column],
         color=filtered_data["primary_color"],
         edgecolor=filtered_data["secondary_color"],
         width=0.5,
@@ -61,7 +61,7 @@ def generate_bar_from_data(data, column, title, isInt=True, k=10):
         ax.add_artist(ab)
         
     def format_names(x, _):
-        name = filtered_data.iloc[x]['name']
+        name = filtered_data.iloc[x]['player_name']
         separated_name = name.split()
         if len(name) > 13:
             len_first = len(separated_name[0])
@@ -83,10 +83,8 @@ def generate_bar_from_data(data, column, title, isInt=True, k=10):
 
 def get_bar_chart_inputs():
     choices = []
-    for attr in SofaStats.Individual_Stats:
+    for attr in SofaStats.Player_Stats_For_Tournament:
         choices.append(attr)
-    # custom attr
-    choices.append("groundWon")
     choices.sort()
 
     questions = [
