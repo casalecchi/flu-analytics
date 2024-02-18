@@ -11,34 +11,14 @@ def get_individual_stats_from_match(match_id):
     json_url = f"https://api.sofascore.com/api/v1/event/{match_id}/lineups"
     return get_json_data(json_url)
 
-def get_fetch_info(round_data: object, tournament_teams_obj, teams):
-    """Return the list of teams that will be fetched. Each item of this list will contain
-    the team name, id and the field (home or away)."""
+def get_last_matches_data(team_id, page):
+    url = f"https://api.sofascore.com/api/v1/team/{team_id}/events/last/{page}"
+    return get_json_data(url)['events'] # last 30 matches from team
 
-    def get_team_props(name, id, field) -> object:
-        return {
-            "name"  : name,
-            "id"    : id,
-            "field" : field,
-        }
+def get_player_data(player_id, unique_id, season_id):
+    url = f"https://api.sofascore.com/api/v1/player/{player_id}/unique-tournament/{unique_id}/season/{season_id}/statistics/overall"
+    return get_json_data(url)
 
-    info = []
-    for match in round_data:
-        teams_find = 0
-        for team in teams:
-            if teams_find == 2: break
-            field = ""
-            home = match["homeTeam"]["id"]
-            away = match["awayTeam"]["id"]
-            if home == tournament_teams_obj[team].id:
-                field = "home"
-                team_obj = get_team_props(team, match["id"], field)
-                info.append(team_obj)
-                teams_find += 1
-            elif away == tournament_teams_obj[team].id:
-                field = "away"
-                team_obj = get_team_props(team, match["id"], field)
-                info.append(team_obj)
-                teams_find += 1
-
-    return info
+def get_team_data(team_id, unique_id, season_id):
+    url = f"https://api.sofascore.com/api/v1/team/{team_id}/unique-tournament/{unique_id}/season/{season_id}/statistics/overall"
+    return get_json_data(url)['statistics']

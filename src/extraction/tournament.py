@@ -1,19 +1,19 @@
 from typing import List
+from extraction.fetchData import get_team_data
 from extraction.team import *
 
 
 class Tournament:
-    def __init__(self, name, first_id, second_id):
+    def __init__(self, name, unique_id, season_id):
         self.name = name
-        self.first_id = first_id
-        self.second_id = second_id
+        self.unique_id = unique_id
+        self.season_id = season_id
         self.team_ids = self._get_teams_ids_from_tournament()
-        self.teams: List[Team] = self._get_teams()
-        self.name_instance = {team.name: team for team in self.teams}
-    
+        self.teams = self._get_teams()
+
     def _get_teams_ids_from_tournament(self) -> List[int]:
         ids = []
-        data = get_json_data(f"https://api.sofascore.com/api/v1/unique-tournament/{self.first_id}/season/{self.second_id}/team-events")
+        data = get_json_data(f"https://api.sofascore.com/api/v1/unique-tournament/{self.unique_id}/season/{self.season_id}/team-events")
         tournament_team_events = data['tournamentTeamEvents']
         for team_obj in tournament_team_events.values():
             for id in team_obj.keys():
@@ -29,49 +29,50 @@ class Tournament:
             teams_data.append(new_team)
         return teams_data
     
-    def get_round_data_from_tournament(self, round_number):
-        """Return a list of Objects with each match details of a tournament round."""
-        url = f"https://api.sofascore.com/api/v1/unique-tournament/{self.first_id}/season/{self.second_id}/events/round/{round_number}"
-        data = get_json_data(url)
-        try:
-            # return list of matches
-            return data["events"]
-        except:
-            print(f"Cannot find data from round {round_number} of {self.name}")
-    
-    def get_df_from_tournament_round(self, round_number: int, teams_selected: List[str]):
-        """Return the data for a specific round from all teams selected in a DataFrame"""
-        data = pd.DataFrame()
-        carioca_round_data = self.get_round_data_from_tournament(round_number)
-        teams_info = get_fetch_info(carioca_round_data, self.name_instance, teams_selected)
-        for info in teams_info:
-            team = self.name_instance[info["name"]]
-            id = info["id"]
-            field = info["field"]
-            try:
-                team_data = get_individual_stats_from_match(id)
-                team_df = team.get_df_from_team(team_data, field)
-                data = pd.concat([data, team_df])
-            except Exception as ex:
-                print(f"Cannot find data for {team.name} match -> {ex}")
-
-        return data
-    
-    def get_tournament_inputs(self):
-        """Get a Tournament inputs from user by the terminal."""
-        choices = []
+    def find_team_by_id(self, team_id):
         for team in self.teams:
-            choices.append(team.name)
-        choices.sort()
-
-        questions = [
-            inquirer.Text('round', message=f"Type the round of {self.name}"),
-            inquirer.Checkbox('teams', message="What teams you want to fetch data?",
-                            choices=choices,
-                            ),
-            inquirer.Text('fname', message="Name the csv file (with .csv)"),
-        ]
-
-        answers = inquirer.prompt(questions)
-        return answers
+            if team.id == team_id:
+                return team
     
+    def get_tournament_stats_from_teams(self):
+        df = pd.DataFrame(columns=('id', 'name', 'primary_color', 'secondary_color', 
+                                   'badge_url', *SofaStats.Team_Stats))
+        for index, team in enumerate(self.teams):
+            data = get_team_data(team.id, self.unique_id, self.season_id)
+            id = team.id
+            name = team.name
+            primary_color = team.primary_color
+            secondary_color = team.secondary_color
+            badge_url = team.badge
+            df.loc[index] = [id, name, primary_color, secondary_color, badge_url, *[0.0 for _ in range(SofaStats.Num_Team_Stats)]]
+            for attr in SofaStats.Team_Stats:
+                df.at[index, attr] = data.get(attr, 0)
+        
+        return df
+    
+    def get_tournament_stats_from_player(self, player_name, player_id):
+        data = get_player_data(player_id, self.unique_id, self.season_id)
+        statistics = data['statistics']
+        team_id = data['team']['id']
+        team = self.find_team_by_id(team_id)
+        df = pd.DataFrame(columns=('id', 'player_name', 'team_name', 'primary_color', 'secondary_color', 
+                                   'badge_url', *SofaStats.Player_Stats_For_Tournament))
+        team_name = team.name
+        primary_color = team.primary_color
+        secondary_color = team.secondary_color
+        badge_url = team.badge
+        df.loc[0] = [player_id, player_name, team_name, primary_color, secondary_color, badge_url, *[0.0 for _ in range(len(SofaStats.Player_Stats_For_Tournament))]]
+        for attr in SofaStats.Player_Stats_For_Tournament:
+            df.at[0, attr] = statistics.get(attr, 0)
+        
+        return df
+
+    
+    # estatisticas do campeonato inteiro 
+    # https://api.sofascore.com/api/v1/team/1961/unique-tournament/92/season/56974/statistics/overall
+    # top player por competição do time
+    # https://api.sofascore.com/api/v1/team/1961/unique-tournament/92/season/56974/top-players/overall
+    # ultimas partidas
+    # https://api.sofascore.com/api/v1/team/1961/events/last/0
+    # estatisticas de jogador por torneio
+    # https://api.sofascore.com/api/v1/player/33238/unique-tournament/92/season/56974/statistics/overall
