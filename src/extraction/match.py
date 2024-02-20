@@ -32,7 +32,7 @@ class Match:
         team_id = self.event_data[field]['id']
         return Team(team_id)
     
-    def get_match_df_stats(self):
+    def get_teams_df_stats(self):
         if self.teams_stats == {}:
             return pd.DataFrame()
         
@@ -59,8 +59,29 @@ class Match:
         
         return df
                 
-
-
-
-print(Match(11873086).get_match_df_stats())
+    def get_players_df_stats(self):
+        data = get_players_stats_by_match(self.id)
+        df = pd.DataFrame(columns=('player_id', 'player_name', 'team_name', 'primary_color', 'secondary_color', 
+                                   'badge_url', 'avatar_url', *SofaStats.Individual_Stats))
+        index = 0
+        for field, team in zip(['home', 'away'], [self.home, self.away]):
+            team_stats = data[field]
+            players: List[dict] = team_stats['players']
+            for player in players:
+                player_id = player['player']['id']
+                player_name = player['player']['name']
+                team_name = team.name
+                primary_color = team.primary_color
+                secondary_color = team.secondary_color
+                badge_url = team.badge
+                avatar_url = f"https://api.sofascore.com/api/v1/player/{player_id}/image"
+                df.loc[index] = [player_id, player_name, team_name, primary_color, secondary_color,
+                                 badge_url, avatar_url, *[0.0 for _ in range(len(SofaStats.Individual_Stats))]]
+                statistics: dict = player.get('statistics', {})
+                for attr in SofaStats.Individual_Stats:
+                    df.at[index, attr] = statistics.get(attr, 0)
+                index += 1
+        
+        return df
+        
     

@@ -6,7 +6,7 @@ def get_json_data(url):
     response = requests.get(url, stream=True, headers=HEADERS)
     return response.json()
 
-def get_individual_stats_from_match(match_id):
+def get_players_stats_by_match(match_id):
     """Return JSON data as an Object containing individual stats from match. Input is the match ID from sofascore."""
     json_url = f"https://api.sofascore.com/api/v1/event/{match_id}/lineups"
     return get_json_data(json_url)
