@@ -11,6 +11,14 @@ def get_individual_stats_from_match(match_id):
     json_url = f"https://api.sofascore.com/api/v1/event/{match_id}/lineups"
     return get_json_data(json_url)
 
+def get_match_data(match_id):
+    url = f"https://api.sofascore.com/api/v1/event/{match_id}"
+    return get_json_data(url)['event']
+
+def get_teams_stats_by_match(match_id):
+    url = f"https://api.sofascore.com/api/v1/event/{match_id}/statistics"
+    return get_json_data(url)['statistics']
+
 def get_last_matches_data(team_id, page):
     url = f"https://api.sofascore.com/api/v1/team/{team_id}/events/last/{page}"
     return get_json_data(url)['events'] # last 30 matches from team
