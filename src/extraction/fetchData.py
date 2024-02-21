@@ -15,6 +15,10 @@ def get_match_data(match_id):
     url = f"https://api.sofascore.com/api/v1/event/{match_id}"
     return get_json_data(url)['event']
 
+def get_round_matches(unique_id, season_id, round_number):
+    url = f"https://api.sofascore.com/api/v1/unique-tournament/{unique_id}/season/{season_id}/events/round/{round_number}"
+    return get_json_data(url)['events']
+
 def get_teams_stats_by_match(match_id):
     url = f"https://api.sofascore.com/api/v1/event/{match_id}/statistics"
     return get_json_data(url)['statistics']
