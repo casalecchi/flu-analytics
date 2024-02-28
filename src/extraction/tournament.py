@@ -47,8 +47,10 @@ class Tournament:
                 return team
     
     def get_tournament_stats_from_teams(self):
-        df = pd.DataFrame(columns=('id', 'name', 'primary_color', 'secondary_color', 
-                                   'badge_url', *SofaStats.Team_Stats))
+        """Return a DataFrame containing the accumulate statistics from all teams from tournament"""
+        df = pd.DataFrame(columns=('team_id', 'name', 'primary_color', 'secondary_color', 
+                                   'badge_url', *SofaStats.Team_Stats_For_Tournament))
+        df.set_index('team_id', inplace=True)
         for index, team in tqdm(enumerate(self.teams), desc="Fetching stats from teams..."):
             data = get_team_data(team.id, self.unique_id, self.season_id)
             id = team.id
@@ -56,13 +58,14 @@ class Tournament:
             primary_color = team.primary_color
             secondary_color = team.secondary_color
             badge_url = team.badge
-            df.loc[index] = [id, name, primary_color, secondary_color, badge_url, *[0.0 for _ in range(SofaStats.Num_Team_Stats)]]
-            for attr in SofaStats.Team_Stats:
-                df.at[index, attr] = data.get(attr, 0)
+            df.loc[id] = [name, primary_color, secondary_color, badge_url, *[0.0 for _ in range(len(SofaStats.Team_Stats_For_Tournament))]]
+            for attr in SofaStats.Team_Stats_For_Tournament:
+                df.at[id, attr] = data.get(attr, 0)
         
         return df
     
     def get_tournament_stats_from_player(self, player_name, player_id):
+        """Return a DataFrame containing the accumulate stats from a given player"""
         data = get_player_data(player_id, self.unique_id, self.season_id)
         if 'error' in data:
             print(f"Cannot find {self.name} data for {player_name}")
@@ -70,16 +73,17 @@ class Tournament:
         statistics = data.get('statistics', {})
         team_id = data['team']['id']
         team = self.find_team_by_id(team_id)
-        df = pd.DataFrame(columns=('id', 'player_name', 'team_name', 'primary_color', 'secondary_color', 
+        df = pd.DataFrame(columns=('player_id', 'player_name', 'team_name', 'primary_color', 'secondary_color', 
                                    'badge_url', 'avatar_url', *SofaStats.Player_Stats_For_Tournament))
+        df.set_index('player_id', inplace=True)
         team_name = team.name
         primary_color = team.primary_color
         secondary_color = team.secondary_color
         badge_url = team.badge
         avatar_url = f"https://api.sofascore.com/api/v1/player/{player_id}/image"
-        df.loc[0] = [player_id, player_name, team_name, primary_color, secondary_color, badge_url, avatar_url, *[0.0 for _ in range(len(SofaStats.Player_Stats_For_Tournament))]]
+        df.loc[player_id] = [player_name, team_name, primary_color, secondary_color, badge_url, avatar_url, *[0.0 for _ in range(len(SofaStats.Player_Stats_For_Tournament))]]
         for attr in SofaStats.Player_Stats_For_Tournament:
-            df.at[0, attr] = statistics.get(attr, 0)
+            df.at[player_id, attr] = statistics.get(attr, 0)
         
         return df
     

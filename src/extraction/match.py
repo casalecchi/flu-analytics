@@ -32,38 +32,53 @@ class Match:
         team_id = self.event_data[field]['id']
         return Team(team_id)
     
-    def get_teams_df_stats(self):
+    def fetch_teams_df_stats(self):
+        """Return a DataFrame containing stats from both teams, one in a row of the df"""
         if self.teams_stats == {}:
             return pd.DataFrame()
         
         stats = self.teams_stats['groups']
         total_attrs = ["Long balls", "Crosses", "Dribbles"]
-        df = pd.DataFrame(columns=('match_id', 'team', *SofaStats.Match_Stats, *['Accurate ' + att for att in total_attrs]))
+        df = pd.DataFrame(columns=('team_id', 'match_id', 'team', 'opponent', 'primary_color', 'secondary_color', 'badge_url', 
+                                   'Goals Scored', 'Goals Suffered', 'Matches', *SofaStats.Match_Stats, *['Accurate ' + att for att in total_attrs]))
+        df.set_index('team_id', inplace=True)
         for index, team in enumerate([self.home, self.away]):
             if index == 0:
                 field = 'home'
+                goals_scored = self.homeScore
+                goals_suffered = self.awayScore
+                opponent = self.away
             else:
                 field = 'away'
+                goals_scored = self.awayScore
+                goals_suffered = self.homeScore
+                opponent = self.home
             value = field + 'Value'
             total = field + 'Total'
 
-            df.loc[index] = [self.id, team.name, *[0.0 for _ in range(len(SofaStats.Match_Stats) + len(total_attrs))]]
+            primary_color = team.primary_color
+            secondary_color = team.secondary_color
+            badge_url = team.badge
+
+            df.loc[team.id] = [self.id, team.name, opponent.name, primary_color, secondary_color, badge_url,
+                               goals_scored, goals_suffered, 1, *[0.0 for _ in range(len(SofaStats.Match_Stats) + len(total_attrs))]]
             for group in stats:
                 for item in group['statisticsItems']:
                     attr = item['name']
                     if attr in total_attrs:
-                        df.at[index, 'Accurate ' + attr] = item[value]
-                        df.at[index, attr] = item[total]
+                        df.at[team.id, 'Accurate ' + attr] = item[value]
+                        df.at[team.id, attr] = item[total]
                     else:     
-                        df.at[index, attr] = item[value]
+                        df.at[team.id, attr] = item[value]
         
         return df
                 
-    def get_players_df_stats(self):
+    def fetch_players_df_stats(self):
+        """Return a DataFrame containing the stats from all players listed for the match"""
         data = get_players_stats_by_match(self.id)
         df = pd.DataFrame(columns=('player_id', 'player_name', 'team_name', 'primary_color', 'secondary_color', 
                                    'badge_url', 'avatar_url', *SofaStats.Individual_Stats))
-        index = 0
+        df.set_index('player_id', inplace=True)
         for field, team in zip(['home', 'away'], [self.home, self.away]):
             team_stats = data[field]
             players: List[dict] = team_stats['players']
@@ -75,12 +90,11 @@ class Match:
                 secondary_color = team.secondary_color
                 badge_url = team.badge
                 avatar_url = f"https://api.sofascore.com/api/v1/player/{player_id}/image"
-                df.loc[index] = [player_id, player_name, team_name, primary_color, secondary_color,
+                df.loc[player_id] = [player_name, team_name, primary_color, secondary_color,
                                  badge_url, avatar_url, *[0.0 for _ in range(len(SofaStats.Individual_Stats))]]
                 statistics: dict = player.get('statistics', {})
                 for attr in SofaStats.Individual_Stats:
-                    df.at[index, attr] = statistics.get(attr, 0)
-                index += 1
+                    df.at[player_id, attr] = statistics.get(attr, 0)
         
         return df
         
