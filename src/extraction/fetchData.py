@@ -34,3 +34,20 @@ def get_player_data(player_id, unique_id, season_id):
 def get_team_data(team_id, unique_id, season_id):
     url = f"https://api.sofascore.com/api/v1/team/{team_id}/unique-tournament/{unique_id}/season/{season_id}/statistics/overall"
     return get_json_data(url)['statistics']
+
+def get_teams_stats_by_match(match_id):
+    """Return JSON data as an Object containing team stats from match. Input is the match ID from sofascore."""
+    json_url = f"https://api.sofascore.com/api/v1/event/{match_id}/statistics"
+    return get_json_data(json_url).get('statistics', {})
+
+def get_shotmap(match_id):
+    url = f"https://api.sofascore.com/api/v1/event/{match_id}/shotmap"
+    return get_json_data(url)
+
+def get_tournament_heatmap(player_id, unique_id, season_id):
+    url = f"https://api.sofascore.com/api/v1/player/{player_id}/unique-tournament/{unique_id}/season/{season_id}/heatmap/overall"
+    return get_json_data(url)
+
+def get_match_heatmap(match_id, player_id):
+    url = f"https://api.sofascore.com/api/v1/event/{match_id}/player/{player_id}/heatmap"
+    return get_json_data(url)

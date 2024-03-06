@@ -11,44 +11,50 @@ class Round:
         self.matches = self._get_matches_by_round()
 
     def _get_matches_by_round(self) -> List[Match]:
+        """Get matches instances for each match in that tournament round"""
         matches = []
         matches_data = get_round_matches(self.tournament.unique_id, self.tournament.season_id, self.round)
-        for match in matches_data:
+        for match in tqdm(matches_data, desc=f"Loading {self.round}th round matches..."):
             match_id = match['id']
             matches.append(Match(match_id))
     
         return matches
     
     def fetch_teams_stats(self):
+        """Return a DataFrame with the team stats from all teams in a Round"""
         df = pd.DataFrame()
-        for match in self.matches:
-            teams_df = match.get_teams_df_stats()
+        for match in tqdm(self.matches, desc=f"Fetching teams stats from {self.round}th round matches..."):
+            teams_df = match.fetch_teams_stats()
             df = pd.concat([df, teams_df])
         
         return df
     
     def fetch_players_stats(self):
+        """Return a DataFrame with the players stats from all listed players in a Round"""
         df = pd.DataFrame()
-        for match in self.matches:
-            players_df = match.get_players_df_stats()
+        for match in tqdm(self.matches, desc=f"Fetching players stats from {self.round}th round matches..."):
+            players_df = match.fetch_players_stats()
             df = pd.concat([df, players_df])
 
         return df
     
-    def fetch_teams_stats_combined(self):
+    def fetch_teams_stats_until(self):
         """Return a DataFrame with the accumulate team stats until, and including, the Round"""
-        df = Round(1, self.tournament).fetch_teams_stats()
+        df = pd.DataFrame()
+        text_attrs = pd.DataFrame()
         text_columns = ['team', 'primary_color', 'secondary_color', 'badge_url']
-        text_attrs = df[text_columns]
-        df.drop(['match_id', 'opponent', *text_columns], axis=1, inplace=True)
 
-        for round_number in tqdm(range(2, self.round + 1), desc=f"Fetching data from rounds..."):
+        for round_number in range(1, self.round + 1):
             round = Round(round_number, self.tournament)
             teams_stats = round.fetch_teams_stats()
             text_teams = teams_stats[text_columns]
             teams_stats.drop(['match_id', 'opponent', *text_columns], axis=1, inplace=True)
 
-            df = df.add(teams_stats, fill_value=0)
+            if round_number == 1:
+                df = teams_stats
+            else: 
+                df = df.add(teams_stats, fill_value=0)
+
             text_attrs = pd.concat([text_attrs, text_teams])
         
         text_attrs.drop_duplicates(inplace=True)
@@ -59,30 +65,27 @@ class Round:
 
         return df
     
-    def fetch_players_stats_combined(self):
+    def fetch_players_stats_until(self):
         """Return a DataFrame with the accumulate team stats until, and including, the Round"""
-        print("Fetching data from round 1...")
-        df = Round(1, self.tournament).fetch_players_stats()
+        df = pd.DataFrame()
+        text_attrs = pd.DataFrame()
         text_columns = ['player_name', 'team_name', 'primary_color', 
                      'secondary_color', 'badge_url', 'avatar_url']
-        text_attrs = df[text_columns]
-        df.drop(text_columns, axis=1, inplace=True)
 
-        for round_number in tqdm(range(2, self.round + 1), desc=f"Fetching data from remaining rounds..."):
+        for round_number in range(1, self.round + 1):
             round = Round(round_number, self.tournament)
             players_stats = round.fetch_players_stats()
             text_players = players_stats[text_columns]
             players_stats.drop(text_columns, axis=1, inplace=True)
 
-            df = df.add(players_stats, fill_value=0)
+            if round_number == 1:
+                df = players_stats
+            else: 
+                df = df.add(players_stats, fill_value=0)
+
             text_attrs = pd.concat([text_attrs, text_players])
         
         text_attrs.drop_duplicates(inplace=True)
         df[text_columns] = text_attrs
 
         return df
-
-
-
-Carioca = Tournament("Carioca Série A – Taça Guanabara", 92, 56974)
-print(Round(8, Carioca).fetch_teams_stats())

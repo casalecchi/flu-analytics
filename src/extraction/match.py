@@ -5,6 +5,9 @@ from extraction.sofastats import SofaStats
 
 
 class Match:
+    """Class for fetching data from Sofascore matches.
+    It must be provided the id of the match."""
+
     def __init__(self, id):
         self.id = id
         self.event_data = get_match_data(self.id)
@@ -16,6 +19,7 @@ class Match:
         self.teams_stats = self._get_teams_stats()
 
     def _get_teams_stats(self) -> dict:
+        """Get JSON data from teams in the match"""
         try:
             return get_teams_stats_by_match(self.id)[0]
         except:
@@ -29,10 +33,26 @@ class Match:
         return self.event_data[field]['display']
 
     def _get_team(self, field: str) -> Team:
+        """Return the Team class instance"""
         team_id = self.event_data[field]['id']
         return Team(team_id)
     
-    def fetch_teams_df_stats(self):
+    def _get_home_away_player_ids(self):
+        """Return two arrrays with the players ids from each team in the match"""
+        data = get_players_stats_by_match(self.id)
+        home_ids = []
+        away_ids = []
+        
+        for player in data['home']['players']:
+            player_id = player['player']['id']
+            home_ids.append(player_id)
+        for player in data['away']['players']:
+            player_id = player['player']['id']
+            away_ids.append(player_id)
+        
+        return home_ids, away_ids
+    
+    def fetch_teams_stats(self):
         """Return a DataFrame containing stats from both teams, one in a row of the df"""
         if self.teams_stats == {}:
             return pd.DataFrame()
@@ -73,7 +93,7 @@ class Match:
         
         return df
                 
-    def fetch_players_df_stats(self):
+    def fetch_players_stats(self):
         """Return a DataFrame containing the stats from all players listed for the match"""
         data = get_players_stats_by_match(self.id)
         df = pd.DataFrame(columns=('player_id', 'player_name', 'team_name', 'primary_color', 'secondary_color', 
@@ -97,5 +117,82 @@ class Match:
                     df.at[player_id, attr] = statistics.get(attr, 0)
         
         return df
+
+    def fetch_shots(self):
+        """Return a DataFrame with the match shots. Columns in the DataFrame: player_id, player_name,
+        team, opponent, x, y, xG, xGOT, shot_result, body_part.
+
+        The x and y coordinates varies between 0 and 1, so when plotting, it has to be multiplied by
+        width and height of the pitch."""
+        shotmap_data = get_shotmap(self.id)
+        shotmap_data = shotmap_data.get('shotmap', [])
+        df = pd.DataFrame(columns=('shot_id', 'player_id', 'player_name', 'team', 'opponent',
+                                   'x', 'y', 'xG', 'xGOT', 'shot_result', 'body_part'))
+        # pode adicionar aqui: cor do time, escudo, foto jogador...
+        df.set_index('shot_id', inplace=True)
+
+        for shot in shotmap_data:
+            shot_id = shot['id']
+            player = shot['player']
+            player_id = player['id']
+            player_name = player['name']
+            
+            if shot['isHome']:
+                team = self.home.name
+                opponent = self.away.name
+            else:
+                team = self.away.name
+                opponent = self.home.name
         
+            shot_result = shot['shotType']
+            body_part = shot['bodyPart']
+
+            shot_coord = shot['playerCoordinates']
+            x = shot_coord['x'] / 100
+            y = shot_coord['y'] / 100
+            xG = shot['xg']
+            xGOT = shot.get('xgot', np.nan)
+
+            df.loc[shot_id] = [player_id, player_name, team, opponent, x, y, xG, xGOT, shot_result, body_part]
+
+        return df
     
+    def fetch_heatmap_player(self, player_id):
+        """Return a DataFrame with the events coordinates from a player. Columns in the DataFrame: player_id,
+        x, y.
+
+        The x and y coordinates varies between 0 and 1, so when plotting, it has to be multiplied by
+        width and height of the pitch."""
+        heatmap_data = get_match_heatmap(self.id, player_id)
+        heatmap = heatmap_data.get('heatmap', [])
+        df = pd.DataFrame(columns=('player_id', 'x', 'y'))
+        for index, point in enumerate(heatmap):
+            x = point['x'] / 100
+            y = point['y'] / 100
+            df.loc[index] = [player_id, x, y]
+        
+        return df
+    
+    def fetch_heatmap_teams(self):
+        """Return a DataFrame with the events coordinates from a team. It concatenates all the heatmap from the 
+        players listed on the match. Columns in the DataFrame: player_id, x, y and team.
+
+        The x and y coordinates varies between 0 and 1, so when plotting, it has to be multiplied by
+        width and height of the pitch."""
+        home_ids, away_ids = self._get_home_away_player_ids()
+        df = pd.DataFrame(columns=('player_id', 'x', 'y', 'team'))
+        
+        for field in ['home', 'away']:
+            if field == 'home':
+                team = self.home
+                ids = home_ids
+            else:
+                team = self.away
+                ids = away_ids
+            
+            for id in ids:
+                heatmap = self.fetch_heatmap_player(id)
+                heatmap['team'] = team.name
+                df = pd.concat([df, heatmap])
+            
+        return df
